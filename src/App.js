@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import Searchbar from './components/Searchbar/Searchbar';
 import imagesAPI from './services/imageApi';
 import Modal from './components/Modal/Modal';
@@ -9,54 +9,46 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import s from './App.module.css';
 
-class App extends Component {
-  state = {
-    searchInput: '',
-    images: [],
-    page: 1,
-    isLoading: false,
-    error: null,
-    showModal: false,
-    modalImage: '',
-    alt: null,
-  };
-  componentDidUpdate(prevProps, prevState) {
-    const prevInput = prevState.searchInput;
-    const nextInput = this.state.searchInput;
-    const prevPage = prevState.page;
-    const nextPage = this.state.page;
+function App() {
+  const [searchInput, setSearchInput] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [modalImage, setModalImage] = useState('');
+  const [alt, setAlt] = useState(null);
+  useEffect(() => {
+    if (searchInput === '') return;
+    imagesAPI
+      .fetchImagesAPI(searchInput, page)
+      .then(({ hits }) => {
+        if (hits.length === 0) {
+          return setError(
+            `не удалось найти изображение по запросу ${searchInput}`,
+          );
+        }
+        setImages([...images, ...hits]);
+        setPage(page);
+      })
+      .catch(error => setError(error))
+      .finally(() => setIsLoading(false));
+  }, [page, searchInput]);
 
-    if (prevInput !== nextInput || prevPage !== nextPage) {
-      this.setState({ isLoading: true });
-      imagesAPI
-        .fetchImagesAPI(nextInput, nextPage)
-        .then(({ hits }) => {
-          if (hits.length === 0) {
-            return this.setState({
-              status: 'rejected',
-              error: `не удалось найти изображение по запросу ${nextInput}`,
-            });
-          }
-          this.setState(({ images, page }) => ({
-            images: [...images, ...hits],
-            page: page,
-            status: 'resolved',
-          }));
-        })
-        .catch(error => this.setState({ error, status: 'rejected' }))
-        .finally(() => this.setState({ isLoading: false }));
-    }
-  }
-  onSearch = searchInput => {
-    this.setState({ searchInput, images: [], page: 1, error: null });
+  const onSearch = searchInput => {
+    setSearchInput(searchInput);
+    setImages([]);
+    setPage(1);
+    setError(null);
+    setIsLoading(true);
   };
-  onLoadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
-    this.scrolling();
+  const onLoadMore = () => {
+    setIsLoading(true);
+    setPage(page => page + 1);
+    console.log(page);
+    scrolling();
   };
-  scrolling = () => {
+  const scrolling = () => {
     setTimeout(() => {
       window.scrollTo({
         top: document.documentElement.scrollHeight,
@@ -64,47 +56,34 @@ class App extends Component {
       });
     }, 1000);
   };
-
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-    }));
+  const toggleModal = () => {
+    setShowModal(showModal => !showModal);
   };
-  openModal = event => {
-    this.setState(() => ({
-      modalImage: event.target.dataset.largeimg,
-      alt: event.target.alt,
-    }));
-    this.toggleModal();
+  const openModal = event => {
+    setModalImage(() => event.target.dataset.largeimg);
+    setAlt(() => event.target.alt);
+    toggleModal();
   };
-  closeModal = () => {
-    this.setState({
-      modalImage: '',
-    });
-    this.toggleModal();
+  const closeModal = () => {
+    setModalImage('');
+    toggleModal();
   };
 
-  render() {
-    const { images, error, modalImage, showModal, isLoading, alt } = this.state;
-
-    return (
-      <div className={s.App}>
-        <Searchbar onSubmit={this.onSearch} />
-        {isLoading && <LoaderSpin />}
-        {images.length > 0 && !error && (
-          <>
-            <ImageGallery onClick={this.openModal} images={images} />
-            <Button loadImages={this.onLoadMore} />
-          </>
-        )}
-        {showModal && (
-          <Modal onClose={this.closeModal} src={modalImage} alt={alt} />
-        )}
-        {error && <p className={s.error}>{error}</p>}
-        <ToastContainer autoClose={3000} />
-      </div>
-    );
-  }
+  return (
+    <div className={s.App}>
+      <Searchbar onSubmit={onSearch} />
+      {isLoading && <LoaderSpin />}
+      {images.length > 0 && !error && (
+        <>
+          <ImageGallery onClick={openModal} images={images} />
+          <Button loadImages={onLoadMore} />
+        </>
+      )}
+      {showModal && <Modal onClose={closeModal} src={modalImage} alt={alt} />}
+      {error && <p className={s.error}>{error}</p>}
+      <ToastContainer autoClose={3000} />
+    </div>
+  );
 }
 
 export default App;
