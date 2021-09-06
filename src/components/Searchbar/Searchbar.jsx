@@ -1,32 +1,29 @@
 
-import { Component } from "react";
+import { useState } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import s from "./Searchbar.module.css";
 
 
-export default class Searchbar extends Component{
-    state = {
-       searchInput:'',
-    }
-    handlerSubmit = event => {
+export default function Searchbar (props){
+  const [searchInput, setSearchInput] = useState('');
+    const handlerSubmit = event => {
           
         event.preventDefault();
       
-        if (this.state.searchInput.trim() === ''){
+        if (searchInput.trim() === ''){
             return toast.error('введите запрос')
         }
-        this.props.onSubmit(this.state.searchInput)
-        this.setState({searchInput:''})
+        props.onSubmit(searchInput)
+        setSearchInput('')
     }
 
-    handlerOnChange = event => {
-      this.setState({ searchInput: event.currentTarget.value.toLowerCase() })   
+   const  handlerOnChange = event => {
+      setSearchInput(event.currentTarget.value.toLowerCase() )   
     }
-  render() {
     return (
       <header className={s.Searchbar}>
-      <form onSubmit={ this.handlerSubmit }
+      <form onSubmit={ handlerSubmit }
       className={s.SearchForm}>
     <button type="submit" className={s.SearchFormButton}>
       <span className={s.SearchFormButtonLabel}>Search</span>
@@ -38,14 +35,14 @@ export default class Searchbar extends Component{
       autoComplete="off"
       autoFocus
       placeholder="Search images and photos"
-      value={this.state.searchInput}
-      onChange={this.handlerOnChange}
+      value={searchInput}
+      onChange={handlerOnChange}
     />
   </form>
 </header>
     )
 }
-}
+
 
 
 
